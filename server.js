@@ -210,7 +210,7 @@ const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
   if (urlPath === '/' || urlPath === '/game') urlPath = '/index.html';
 
-  const filePath = path.join(__dirname, 'public', urlPath);
+  const filePath = path.join(__dirname, urlPath);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext  = path.extname(filePath).toLowerCase();
     const mime = MIME[ext] || 'application/octet-stream';
@@ -223,7 +223,7 @@ const server = http.createServer((req, res) => {
   if (urlPath.startsWith('/img/')) {
     const name = urlPath.replace('/img/', '');
     const candidates = [
-      path.join(__dirname, 'public', 'img', name),
+     path.join(__dirname, 'img', name),
       `/mnt/user-data/uploads/${name}`,
     ];
     for (const p of candidates) {
