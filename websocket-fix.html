@@ -1,0 +1,55 @@
+<!-- 
+  CORREÇÃO: Substitua a linha de conexão WebSocket no seu index.html
+  
+  ANTES (só funciona em Wi-Fi local):
+  const ws = new WebSocket('ws://192.168.1.10:3000');
+  
+  DEPOIS (funciona em qualquer rede — Wi-Fi local E internet):
+-->
+
+<script>
+  // Cole este código no seu index.html, substituindo a conexão WebSocket atual
+
+  function criarWebSocket() {
+    // Detecta automaticamente se está rodando local ou na nuvem
+    const protocolo = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host; // pega o endereço atual automaticamente
+    const url = `${protocolo}//${host}`;
+    
+    console.log('Conectando ao WebSocket:', url);
+    return new WebSocket(url);
+  }
+
+  // Use assim no seu código:
+  // const ws = criarWebSocket();
+  //
+  // Exemplo completo de uso com reconexão automática:
+
+  let ws;
+
+  function conectar() {
+    const protocolo = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocolo}//${window.location.host}`);
+
+    ws.onopen = () => {
+      console.log('Conectado!');
+      // seu código de onopen aqui
+    };
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      // seu código de onmessage aqui
+    };
+
+    ws.onclose = () => {
+      console.log('Desconectado. Tentando reconectar em 2s...');
+      setTimeout(conectar, 2000); // reconecta automaticamente
+    };
+
+    ws.onerror = (err) => {
+      console.error('Erro WebSocket:', err);
+    };
+  }
+
+  conectar();
+</script>

@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#001020">
+<title>Eco Rider</title>
+<style>
+/* ── RESET ─────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#001020;
+  font-family:'Courier New',Courier,monospace;touch-action:none;user-select:none}
+
+/* ── LOBBY ──────────────────────────────────────────────────────── */
+#lobby{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;
+  background:linear-gradient(180deg,#001835 0%,#001020 100%);
+  z-index:100;padding:24px;
+}
+#lobby h1{
+  color:#00e5ff;font-size:clamp(28px,8vw,52px);letter-spacing:4px;
+  text-shadow:0 0 30px #00e5ff,0 0 60px #0066aa;text-align:center;line-height:1.2;
+}
+#lobby h1 span{color:#ffffff;font-size:.5em;display:block;letter-spacing:6px;margin-top:4px}
+#lobby p{color:#88aacc;font-size:13px;letter-spacing:1px;text-align:center;max-width:320px;line-height:1.6}
+
+.l-card{
+  background:rgba(0,30,60,.8);border:1px solid rgba(0,229,255,.3);
+  border-radius:14px;padding:18px 22px;width:100%;max-width:340px;
+}
+.l-card label{color:#88aacc;font-size:11px;letter-spacing:2px;display:block;margin-bottom:6px}
+.l-row{display:flex;gap:10px;align-items:center}
+
+#roomInput{
+  flex:1;background:rgba(0,0,0,.5);border:2px solid #00e5ff;color:#00e5ff;
+  padding:12px 14px;border-radius:10px;font-size:20px;font-family:inherit;
+  letter-spacing:5px;text-transform:uppercase;outline:none;text-align:center;
+  caret-color:#00e5ff;
+}
+#roomInput::placeholder{color:rgba(0,229,255,.35);letter-spacing:3px}
+
+.btn-gen{
+  background:rgba(0,100,150,.4);border:2px solid rgba(0,229,255,.5);color:#00e5ff;
+  padding:12px 14px;border-radius:10px;font-size:18px;cursor:pointer;
+}
+.btn-gen:active{background:rgba(0,200,255,.2)}
+
+.role-btns{display:flex;gap:10px;width:100%;max-width:340px}
+.role-btn{
+  flex:1;padding:14px 0;border-radius:12px;border:2.5px solid;
+  font-family:inherit;font-size:14px;font-weight:bold;letter-spacing:2px;
+  cursor:pointer;background:rgba(0,0,0,.55);transition:all .15s;
+}
+.role-btn:active{transform:scale(.94)}
+.rbboy {border-color:#00e5ff;color:#00e5ff}
+.rbboy:active{background:rgba(0,229,255,.2)}
+.rbgirl{border-color:#ff4dd2;color:#ff4dd2}
+.rbgirl:active{background:rgba(255,77,210,.2)}
+
+#lobbyStatus{
+  color:#fff;font-size:12px;letter-spacing:1px;text-align:center;
+  min-height:18px;opacity:.8;
+}
+#roomBadge{
+  display:none;background:rgba(255,200,0,.12);border:2px solid #ffd700;
+  color:#ffd700;font-size:16px;letter-spacing:5px;font-weight:bold;
+  padding:8px 20px;border-radius:8px;text-align:center;
+}
+
+/* ── WAITING ─────────────────────────────────────────────────────── */
+#waiting{
+  position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  z-index:90;background:rgba(0,10,25,.9);flex-direction:column;gap:16px;
+}
+#waiting p{color:#00e5ff;font-size:16px;letter-spacing:3px;text-align:center;
+  animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#waitRole{
+  font-size:13px;letter-spacing:2px;padding:8px 20px;border-radius:8px;border:2px solid;
+}
+
+/* ── GAME CANVAS ─────────────────────────────────────────────────── */
+#gameCanvas{
+  position:fixed;top:0;left:0;
+  width:100vw;height:100vh;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  display:none;
+}
+
+/* ── HUD ─────────────────────────────────────────────────────────── */
+#hud{
+  position:fixed;top:0;left:0;right:0;
+  display:none;justify-content:space-between;align-items:center;
+  padding:env(safe-area-inset-top,8px) 14px 8px;
+  z-index:50;pointer-events:none;
+}
+.hud-box{
+  background:rgba(0,0,0,.78);border:2px solid;
+  padding:5px 12px;border-radius:8px;
+  font-size:13px;font-weight:bold;letter-spacing:1px;
+}
+.hud-boy {border-color:#00e5ff;color:#00e5ff}
+.hud-girl{border-color:#ff4dd2;color:#ff4dd2}
+#hudLevel{color:#fff;font-size:13px;font-weight:bold;
+  background:rgba(0,0,0,.7);padding:5px 12px;border-radius:8px;
+  text-shadow:0 0 8px #0ff}
+
+/* ── CONTROLS ────────────────────────────────────────────────────── */
+#controls{
+  position:fixed;bottom:0;left:0;right:0;
+  display:none;justify-content:space-between;align-items:flex-end;
+  padding:0 10px calc(env(safe-area-inset-bottom,0px) + 14px);
+  z-index:50;pointer-events:none;
+}
+.ctrl-wrap{pointer-events:all}
+.ctrl-label{
+  font-size:10px;font-weight:bold;letter-spacing:2px;
+  text-align:center;margin-bottom:6px;opacity:.7;
+}
+.ctrl-row{display:flex;gap:8px;align-items:center;justify-content:center}
+.cbtn{
+  width:58px;height:58px;border-radius:14px;border:2.5px solid;
+  background:rgba(0,0,0,.65);
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;cursor:pointer;
+  backdrop-filter:blur(4px);
+  transition:transform .08s,background .08s;
+  -webkit-touch-callout:none;
+}
+.cbtn.active{transform:scale(.84)}
+.cbtn-jump{width:66px;height:66px;font-size:28px}
+.cboy {border-color:#00e5ff;color:#00e5ff}
+.cgirl{border-color:#ff4dd2;color:#ff4dd2}
+.cboy.active {background:rgba(0,229,255,.25)}
+.cgirl.active{background:rgba(255,77,210,.25)}
+.ctrl-boy  .ctrl-label{color:#00e5ff}
+.ctrl-girl .ctrl-label{color:#ff4dd2}
+
+/* ── ACTION BUTTON (intro/gameover/win) ──────────────────────────── */
+#actBtn{
+  position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 130px);
+  left:50%;transform:translateX(-50%);
+  display:none;z-index:60;
+  background:rgba(0,0,0,.75);border:3px solid #00e5ff;color:#00e5ff;
+  font-family:inherit;font-size:16px;font-weight:bold;letter-spacing:2px;
+  padding:14px 36px;border-radius:10px;cursor:pointer;white-space:nowrap;
+  animation:glow 1.4s ease-in-out infinite;
+}
+@keyframes glow{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.6),0 0 12px rgba(0,229,255,.3)}
+  50%{box-shadow:0 0 0 14px rgba(0,229,255,0),0 0 24px rgba(0,229,255,.5)}
+}
+#actBtn:active{transform:translateX(-50%) scale(.94);animation:none}
+
+/* ── OVERLAY MESSAGES ────────────────────────────────────────────── */
+#msgOverlay{
+  position:fixed;inset:0;display:none;
+  align-items:center;justify-content:center;
+  z-index:55;pointer-events:none;
+}
+#msgOverlay span{
+  color:#fff;font-size:clamp(18px,5vw,28px);letter-spacing:3px;text-align:center;
+  background:rgba(0,10,25,.75);padding:12px 24px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.2);
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOBBY ──────────────────────────────────────────────────────── -->
+<div id="lobby">
+  <h1>ECO RIDER<span>RIO EM PERIGO</span></h1>
+
+  <div class="l-card">
+    <label>CÓDIGO DA SALA</label>
+    <div class="l-row">
+      <input id="roomInput" maxlength="6" placeholder="EX: ECO01" value="ECO01" autocomplete="off" spellcheck="false">
+      <button class="btn-gen" onclick="genCode()" title="Gerar código aleatório">🎲</button>
+    </div>
+  </div>
+
+  <div class="role-btns">
+    <button class="role-btn rbboy"  onclick="join('boy')">💎 BOY<br><small style="font-size:10px;letter-spacing:1px;opacity:.7">WASD ou ◀▲▶</small></button>
+    <button class="role-btn rbgirl" onclick="join('girl')">💎 GIRL<br><small style="font-size:10px;letter-spacing:1px;opacity:.7">Botões na tela</small></button>
+  </div>
+
+  <div id="roomBadge">SALA: <span id="roomCode">—</span></div>
+  <div id="lobbyStatus">Digite o código e escolha seu personagem</div>
+  <p>Ambos os celulares devem estar na <strong style="color:#00e5ff">mesma rede Wi-Fi</strong></p>
+</div>
+
+<!-- ── WAITING ────────────────────────────────────────────────────── -->
+<div id="waiting">
+  <div id="waitRole" style="color:#00e5ff;border-color:#00e5ff">BOY</div>
+  <p id="waitMsg">⏳ AGUARDANDO 2º JOGADOR...</p>
+</div>
+
+<!-- ── CANVAS ─────────────────────────────────────────────────────── -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- ── HUD ───────────────────────────────────────────────────────── -->
+<div id="hud">
+  <div class="hud-box hud-boy"  id="hudBoy">💎 BOY: 0</div>
+  <div id="hudLevel"></div>
+  <div class="hud-box hud-girl" id="hudGirl">💎 GIRL: 0</div>
+</div>
+
+<!-- ── ON-SCREEN CONTROLS ─────────────────────────────────────────── -->
+<div id="controls">
+  <div class="ctrl-wrap ctrl-boy" id="ctrlBoy" style="display:none">
+    <div class="ctrl-label">BOY</div>
+    <div class="ctrl-row">
+      <div class="cbtn cboy" id="bL">◀</div>
+      <div class="cbtn cboy cbtn-jump" id="bU">▲</div>
+      <div class="cbtn cboy" id="bR">▶</div>
+    </div>
+  </div>
+  <div class="ctrl-wrap ctrl-girl" id="ctrlGirl" style="display:none">
+    <div class="ctrl-label">GIRL</div>
+    <div class="ctrl-row">
+      <div class="cbtn cgirl" id="gL">◀</div>
+      <div class="cbtn cgirl cbtn-jump" id="gU">▲</div>
+      <div class="cbtn cgirl" id="gR">▶</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ACTION BUTTON ─────────────────────────────────────────────── -->
+<button id="actBtn" onclick="handleAct()">▶ JOGAR</button>
+
+<!-- ── MSG OVERLAY ───────────────────────────────────────────────── -->
+<div id="msgOverlay"><span id="msgText"></span></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     GAME SCRIPT
+════════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Canvas setup ────────────────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  if (levelData) levelData = buildLevel(currentLevel); // rebuild on resize
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ── Images ──────────────────────────────────────────────────────────
+const IMG = {};
+const IMG_SRCS = {
+  bg:    'img/1778758066692_image.png',
+  title: 'img/Tela_de_Inicio.png',
+  go1:   'img/7.png',
+  go2:   'img/10.png',
+  go3:   'img/11.png',
+  win:   'img/14.png',
+  in1:   'img/13.png',
+  in2:   'img/12.png',
+  in3:   'img/3.png',
+};
+let imgsReady = 0;
+for (const [k, src] of Object.entries(IMG_SRCS)) {
+  IMG[k] = new Image();
+  IMG[k].onload = IMG[k].onerror = () => imgsReady++;
+  IMG[k].src = src;
+}
+function imgOk(img) { return img && img.complete && img.naturalWidth > 0; }
+
+// ── State ────────────────────────────────────────────────────────────
+const S = { LOBBY:'lobby', WAITING:'waiting', INTRO:'intro',
+            PLAYING:'playing', GAMEOVER:'gameover', WIN:'win' };
+let gameState  = S.LOBBY;
+let myRole     = null;   // 'boy' | 'girl'
+let currentLevel = 1;
+let boyScore = 0, girlScore = 0;
+let introTimer = 0;
+let levelData  = null;
+let pulse      = 0;
+const particles = [];
+
+// ── Physics ──────────────────────────────────────────────────────────
+const GRAVITY    = 0.45;
+const JUMP_FORCE = -13;
+const SPEED      = 5;
+
+// ── Player objects ───────────────────────────────────────────────────
+let myPlayer   = null;
+let peerPlayer = null; // state received from server
+
+// ── Input (keyboard + virtual) ───────────────────────────────────────
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.code] = true;  });
+window.addEventListener('keyup',   e => { keys[e.code] = false; });
+
+const vk = { L: false, R: false, U: false };
+
+function bindBtn(id, key) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const on  = e => { e.preventDefault(); vk[key] = true;  el.classList.add('active'); };
+  const off = e => { e.preventDefault(); vk[key] = false; el.classList.remove('active'); };
+  ['touchstart','mousedown'].forEach(ev => el.addEventListener(ev, on,  { passive: false }));
+  ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev => el.addEventListener(ev, off, { passive: false }));
+}
+bindBtn('bL', 'L'); bindBtn('bU', 'U'); bindBtn('bR', 'R');
+bindBtn('gL', 'L'); bindBtn('gU', 'U'); bindBtn('gR', 'R');
+
+// ── WebSocket ────────────────────────────────────────────────────────
+let ws         = null;
+let syncTimer  = 0;
+let wsRoomId   = null;
+
+function connect(roomId, role) {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url   = `${proto}://${location.host}`;
+  ws = new WebSocket(url);
+  ws.onopen    = () => { send({ type: 'join', roomId, role }); };
+  ws.onmessage = e => onMsg(JSON.parse(e.data));
+  ws.onclose   = () => {
+    setStatus('Conexão perdida. Recarregue a página.');
+    showWaiting(false);
+  };
+  ws.onerror = () => setStatus('Erro de conexão.');
+}
+
+function send(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+}
+
+function onMsg(msg) {
+  switch (msg.type) {
+
+    case 'assigned': {
+      myRole   = msg.role;
+      wsRoomId = msg.roomId;
+      document.getElementById('roomCode').textContent = msg.roomId;
+      document.getElementById('roomBadge').style.display = 'block';
+      setStatus(`Você é o ${myRole.toUpperCase()}! Aguardando parceiro...`);
+
+      // Show waiting
+      hideLobby();
+      const wr = document.getElementById('waitRole');
+      wr.textContent = myRole.toUpperCase();
+      wr.style.color       = myRole === 'boy' ? '#00e5ff' : '#ff4dd2';
+      wr.style.borderColor = myRole === 'boy' ? '#00e5ff' : '#ff4dd2';
+      if (msg.connected < 2) showWaiting(true);
+      break;
+    }
+
+    case 'room_info': {
+      const c = msg.connected;
+      setStatus(`Conectados: ${c}/2`);
+      if (c === 2 && myRole) {
+        showWaiting(false);
+        startIntro();
+      }
+      break;
+    }
+
+    case 'start_game': {
+      currentLevel = msg.level || 1;
+      boyScore     = msg.scores?.boy  || 0;
+      girlScore    = msg.scores?.girl || 0;
+      showWaiting(false);
+      startIntro();
+      break;
+    }
+
+    case 'peer_state': {
+      if (peerPlayer) peerPlayer.applyRemote(msg.data);
+      break;
+    }
+
+    case 'collected': {
+      if (levelData) {
+        const d = levelData.diamonds[msg.idx];
+        if (d) d.collected = true;
+      }
+      boyScore  = msg.scores.boy;
+      girlScore = msg.scores.girl;
+      updateHUD();
+      // particles at approximate position
+      if (levelData) {
+        const d = levelData.diamonds[msg.idx];
+        if (d) spawnFx(d.x, d.y, msg.role === 'boy' ? '#00e5ff' : '#ff4dd2');
+      }
+      break;
+    }
+
+    case 'gameover':  doGameOver(); break;
+    case 'win':
+      boyScore  = msg.scores.boy;
+      girlScore = msg.scores.girl;
+      updateHUD();
+      doWin();
+      break;
+
+    case 'level_complete':
+      currentLevel = msg.next;
+      boyScore     = msg.scores.boy;
+      girlScore    = msg.scores.girl;
+      updateHUD();
+      startIntro();
+      break;
+
+    case 'restart':
+      currentLevel = 1; boyScore = 0; girlScore = 0;
+      updateHUD();
+      startIntro();
+      break;
+
+    case 'player_left':
+      showMsg(`⚠ Parceiro (${msg.role.toUpperCase()}) desconectou`, 3000);
+      showWaiting(true);
+      document.getElementById('waitMsg').textContent = '⏳ PARCEIRO DESCONECTOU...';
+      gameState = S.WAITING;
+      showControls(false);
+      setActBtn('', false);
+      break;
+
+    case 'error':
+      setStatus('Erro: ' + msg.msg);
+      break;
+  }
+}
+
+// ── Level builder ─────────────────────────────────────────────────────
+function buildLevel(lv) {
+  const cw = canvas.width, ch = canvas.height;
+  const fl = ch * 0.82;
+  const p = [], d = [], h = [];
+
+  // Chão das bordas
+  p.push({ x:0, y:fl, w:cw*0.14, ht:16 });
+  p.push({ x:cw*0.86, y:fl, w:cw*0.14, ht:16 });
+
+  if (lv === 1) {
+    p.push(
+      {x:cw*.14,y:ch*.73,w:cw*.11,ht:13},{x:cw*.30,y:ch*.63,w:cw*.10,ht:13},
+      {x:cw*.45,y:ch*.53,w:cw*.09,ht:13},{x:cw*.60,y:ch*.62,w:cw*.10,ht:13},
+      {x:cw*.73,y:ch*.73,w:cw*.10,ht:13},{x:cw*.25,y:ch*.80,w:cw*.10,ht:13},
+      {x:cw*.44,y:ch*.75,w:cw*.09,ht:13}
+    );
+    d.push(
+      {x:cw*.19,y:ch*.62,t:'blue' ,collected:false},
+      {x:cw*.34,y:ch*.51,t:'pink' ,collected:false},
+      {x:cw*.49,y:ch*.41,t:'blue' ,collected:false},
+      {x:cw*.64,y:ch*.50,t:'pink' ,collected:false},
+      {x:cw*.77,y:ch*.61,t:'blue' ,collected:false},
+      {x:cw*.28,y:ch*.68,t:'pink' ,collected:false}
+    );
+    h.push({x:cw*.42,y:ch*.48,w:38,ht:22,t:'oil'});
+  }
+  else if (lv === 2) {
+    p.push(
+      {x:cw*.13,y:ch*.71,w:cw*.09,ht:13},{x:cw*.09,y:ch*.57,w:cw*.10,ht:13},
+      {x:cw*.23,y:ch*.62,w:cw*.08,ht:13},{x:cw*.34,y:ch*.50,w:cw*.08,ht:13},
+      {x:cw*.46,y:ch*.57,w:cw*.09,ht:13},{x:cw*.58,y:ch*.44,w:cw*.08,ht:13},
+      {x:cw*.70,y:ch*.52,w:cw*.10,ht:13},{x:cw*.82,y:ch*.64,w:cw*.09,ht:13},
+      {x:cw*.53,y:ch*.72,w:cw*.08,ht:13},{x:cw*.38,y:ch*.77,w:cw*.08,ht:13}
+    );
+    d.push(
+      {x:cw*.11,y:ch*.45,t:'blue',collected:false},{x:cw*.25,y:ch*.50,t:'pink',collected:false},
+      {x:cw*.36,y:ch*.38,t:'blue',collected:false},{x:cw*.49,y:ch*.45,t:'pink',collected:false},
+      {x:cw*.62,y:ch*.32,t:'blue',collected:false},{x:cw*.73,y:ch*.40,t:'pink',collected:false},
+      {x:cw*.85,y:ch*.52,t:'blue',collected:false}
+    );
+    h.push(
+      {x:cw*.44,y:ch*.45,w:32,ht:20,t:'spikes'},
+      {x:cw*.56,y:ch*.32,w:32,ht:20,t:'oil'}
+    );
+  }
+  else {
+    p.push(
+      {x:cw*.11,y:ch*.70,w:cw*.08,ht:13},{x:cw*.20,y:ch*.57,w:cw*.08,ht:13},
+      {x:cw*.19,y:ch*.44,w:cw*.08,ht:13},{x:cw*.30,y:ch*.37,w:cw*.08,ht:13},
+      {x:cw*.41,y:ch*.50,w:cw*.08,ht:13},{x:cw*.50,y:ch*.40,w:cw*.08,ht:13},
+      {x:cw*.61,y:ch*.47,w:cw*.08,ht:13},{x:cw*.71,y:ch*.37,w:cw*.08,ht:13},
+      {x:cw*.80,y:ch*.54,w:cw*.08,ht:13},{x:cw*.76,y:ch*.70,w:cw*.08,ht:13},
+      {x:cw*.44,y:ch*.70,w:cw*.08,ht:13}
+    );
+    d.push(
+      {x:cw*.13,y:ch*.32,t:'pink',collected:false},{x:cw*.22,y:ch*.45,t:'blue',collected:false},
+      {x:cw*.32,y:ch*.25,t:'pink',collected:false},{x:cw*.43,y:ch*.38,t:'blue',collected:false},
+      {x:cw*.52,y:ch*.28,t:'pink',collected:false},{x:cw*.63,y:ch*.35,t:'blue',collected:false},
+      {x:cw*.73,y:ch*.25,t:'pink',collected:false},{x:cw*.82,y:ch*.42,t:'blue',collected:false}
+    );
+    h.push(
+      {x:cw*.28,y:ch*.25,w:32,ht:20,t:'spikes'},
+      {x:cw*.48,y:ch*.28,w:32,ht:20,t:'oil'},
+      {x:cw*.69,y:ch*.25,w:32,ht:20,t:'spikes'}
+    );
+  }
+
+  return {
+    platforms: p, diamonds: d, hazards: h,
+    spawnBoy:  { x: cw * 0.03, y: ch * 0.70 },
+    spawnGirl: { x: cw * 0.09, y: ch * 0.70 },
+  };
+}
+
+// ── Player class ──────────────────────────────────────────────────────
+class Player {
+  constructor(role, x, y) {
+    this.role = role;
+    this.x = x; this.y = y;
+    this.vx = 0; this.vy = 0;
+    this.W = 30; this.H = 46;
+    this.onGround = false;
+    this.facingRight = role === 'boy';
+    this.frame = 0; this.ft = 0;
+    this.isMoving = false;
+    this.alive = true;
+  }
+
+  tick(platforms, hazards) {
+    if (!this.alive) return;
+
+    // Input
+    const isBoy = this.role === 'boy';
+    const L = isBoy ? (keys['KeyA'] || vk.L)                   : (keys['ArrowLeft']  || vk.L);
+    const R = isBoy ? (keys['KeyD'] || vk.R)                   : (keys['ArrowRight'] || vk.R);
+    const J = isBoy ? (keys['KeyW'] || keys['Space'] || vk.U)  : (keys['ArrowUp']   || vk.U);
+
+    let mv = false;
+    if (L)      { this.vx = -SPEED; this.facingRight = false; mv = true; }
+    else if (R) { this.vx =  SPEED; this.facingRight = true;  mv = true; }
+    else          this.vx = 0;
+    if (J && this.onGround) { this.vy = JUMP_FORCE; this.onGround = false; }
+    this.isMoving = mv;
+
+    // Physics
+    this.vy += GRAVITY;
+    this.x  += this.vx;
+    this.y  += this.vy;
+
+    // Platform collision
+    this.onGround = false;
+    for (const p of platforms) {
+      if (this.x + this.W > p.x && this.x < p.x + p.w &&
+          this.y + this.H > p.y && this.y + this.H < p.y + p.ht + 20 && this.vy >= 0) {
+        this.y = p.y - this.H; this.vy = 0; this.onGround = true;
+      }
+    }
+
+    const cw = canvas.width, ch = canvas.height;
+    this.x = Math.max(0, Math.min(cw - this.W, this.x));
+    if (this.y > ch + 80) { this.alive = false; return; }
+
+    for (const h of hazards) {
+      if (this.x + this.W > h.x && this.x < h.x + h.w &&
+          this.y + this.H > h.y && this.y < h.y + h.ht) {
+        this.alive = false; return;
+      }
+    }
+
+    // Frame anim
+    if (mv || !this.onGround) {
+      if (++this.ft > 8) { this.frame = (this.frame + 1) % 4; this.ft = 0; }
+    } else this.frame = 0;
+  }
+
+  getState() {
+    return { x:this.x, y:this.y, vx:this.vx, vy:this.vy,
+             onGround:this.onGround, facingRight:this.facingRight,
+             frame:this.frame, isMoving:this.isMoving, alive:this.alive };
+  }
+
+  applyRemote(s) {
+    this.x = s.x; this.y = s.y; this.vx = s.vx; this.vy = s.vy;
+    this.onGround = s.onGround; this.facingRight = s.facingRight;
+    this.frame = s.frame; this.isMoving = s.isMoving; this.alive = s.alive;
+  }
+
+  reset(x, y) {
+    this.x = x; this.y = y; this.vx = 0; this.vy = 0;
+    this.alive = true; this.frame = 0; this.ft = 0; this.onGround = false;
+  }
+
+  draw(isPeer) {
+    if (!this.alive) return;
+    ctx.save();
+    if (isPeer) ctx.globalAlpha = 0.82;
+    ctx.translate(this.x + this.W / 2, this.y + this.H / 2);
+    if (!this.facingRight) ctx.scale(-1, 1);
+    ctx.translate(-this.W / 2, -this.H / 2);
+
+    const sw = this.isMoving ? Math.sin(this.frame * Math.PI / 2) * 5 : 0;
+    const sk = '#f5c5a3';
+
+    if (this.role === 'boy') {
+      // Pernas
+      ctx.fillStyle = '#1e2d3d'; ctx.fillRect(3, 28 + sw, 11, 17); ctx.fillRect(16, 28 - sw, 11, 17);
+      // Sapatos
+      ctx.fillStyle = '#111'; ctx.fillRect(1, 43 + sw, 13, 5); ctx.fillRect(14, 43 - sw, 13, 5);
+      // Corpo
+      ctx.fillStyle = '#2e6fd4'; ctx.fillRect(3, 15, 24, 15);
+      // Braços
+      ctx.fillStyle = '#2e6fd4'; ctx.fillRect(-4, 17 + sw, 9, 13); ctx.fillRect(25, 17 - sw, 9, 13);
+      // Mãos
+      ctx.fillStyle = sk; ctx.fillRect(-4, 29 + sw, 8, 5); ctx.fillRect(26, 29 - sw, 8, 5);
+      // Cabeça
+      ctx.fillStyle = sk; ctx.fillRect(5, 1, 20, 16);
+      // Cabelo ruivo
+      ctx.fillStyle = '#c0451a'; ctx.fillRect(5, 0, 20, 6); ctx.fillRect(4, 5, 5, 5);
+      // Olhos
+      ctx.fillStyle = '#222'; ctx.fillRect(8, 7, 5, 5); ctx.fillRect(17, 7, 5, 5);
+      ctx.fillStyle = '#fff'; ctx.fillRect(10, 8, 2, 2); ctx.fillRect(19, 8, 2, 2);
+    } else {
+      // Vestido
+      ctx.fillStyle = '#7d3aac'; ctx.fillRect(2, 28, 26, 18);
+      // Pernas
+      ctx.fillStyle = sk; ctx.fillRect(5, 42 + sw * .5, 9, 7); ctx.fillRect(16, 42 - sw * .5, 9, 7);
+      // Corpo
+      ctx.fillStyle = '#b03030'; ctx.fillRect(4, 15, 22, 15);
+      // Braços
+      ctx.fillStyle = '#b03030'; ctx.fillRect(-3, 17 + sw, 8, 12); ctx.fillRect(25, 17 - sw, 8, 12);
+      ctx.fillStyle = sk; ctx.fillRect(-3, 28 + sw, 7, 5); ctx.fillRect(26, 28 - sw, 7, 5);
+      // Cabeça
+      ctx.fillStyle = sk; ctx.fillRect(5, 1, 20, 16);
+      // Cabelo loiro
+      ctx.fillStyle = '#e8b820'; ctx.fillRect(3, 0, 24, 8); ctx.fillRect(2, 8, 5, 18); ctx.fillRect(23, 8, 5, 18);
+      // Olhos
+      ctx.fillStyle = '#222'; ctx.fillRect(8, 7, 5, 5); ctx.fillRect(17, 7, 5, 5);
+      ctx.fillStyle = '#fff'; ctx.fillRect(10, 8, 2, 2); ctx.fillRect(19, 8, 2, 2);
+    }
+
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+    // Label
+    const col = this.role === 'boy' ? '#00e5ff' : '#ff4dd2';
+    ctx.fillStyle = col;
+    ctx.font = 'bold 10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = col; ctx.shadowBlur = 6;
+    ctx.fillText(this.role === 'boy' ? 'BOY' : 'GIRL', this.x + this.W / 2, this.y - 5);
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ── Particles ─────────────────────────────────────────────────────────
+function spawnFx(x, y, col) {
+  for (let i = 0; i < 14; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - .5) * 8,
+      vy: (Math.random() - .5) * 8 - 3,
+      life: 50, col
+    });
+  }
+}
+function tickFx() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += .2; p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function drawFx() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life / 50;
+    ctx.fillStyle = p.col;
+    ctx.shadowBlur = 8; ctx.shadowColor = p.col;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+
+// ── Draw helpers ──────────────────────────────────────────────────────
+function drawBg() {
+  const img = IMG.bg;
+  if (imgOk(img)) { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); return; }
+  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  g.addColorStop(0, '#001835'); g.addColorStop(1, '#001020');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawPlatform(p) {
+  const g = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.ht);
+  g.addColorStop(0, '#5a8a5a'); g.addColorStop(.4, '#4a6e4a'); g.addColorStop(1, '#2a3e2a');
+  ctx.fillStyle = g; ctx.fillRect(p.x, p.y, p.w, p.ht);
+  ctx.fillStyle = 'rgba(0,0,0,.2)';
+  for (let tx = p.x; tx < p.x + p.w; tx += 18)
+    for (let ty = p.y + 2; ty < p.y + p.ht; ty += 7)
+      ctx.fillRect(tx, ty, 16, 5);
+  ctx.fillStyle = '#7acc55'; ctx.fillRect(p.x, p.y, p.w, 3);
+  ctx.strokeStyle = '#3a5a3a'; ctx.lineWidth = 1;
+  ctx.strokeRect(p.x + .5, p.y + .5, p.w - 1, p.ht - 1);
+}
+
+function drawDiamond(x, y, type) {
+  const sz  = 16 + Math.sin(pulse * .055) * 3;
+  const col = type === 'blue' ? '#00e5ff' : '#ff4dd2';
+  const gl  = type === 'blue' ? 'rgba(0,229,255,.35)' : 'rgba(255,77,210,.35)';
+  ctx.save(); ctx.translate(x, y);
+  ctx.shadowBlur = 16; ctx.shadowColor = col;
+  ctx.fillStyle = gl;
+  ctx.beginPath(); ctx.moveTo(0,-sz); ctx.lineTo(sz*.65,0); ctx.lineTo(0,sz); ctx.lineTo(-sz*.65,0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = col; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.moveTo(0,-sz*.75); ctx.lineTo(sz*.45,0); ctx.lineTo(0,sz*.75); ctx.lineTo(-sz*.45,0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  ctx.beginPath(); ctx.moveTo(-sz*.15,-sz*.5); ctx.lineTo(0,-sz*.25); ctx.lineTo(-sz*.3,0); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawHazard(h) {
+  ctx.save();
+  if (h.t === 'oil') {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath(); ctx.ellipse(h.x+h.w/2, h.y+h.ht/2, h.w/2+Math.sin(pulse*.04)*3, h.ht/2+1, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(80,0,120,.45)';
+    ctx.beginPath(); ctx.ellipse(h.x+h.w/2-5, h.y+h.ht/2-4, h.w/4, h.ht/4, .3, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillStyle = '#bbb';
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.moveTo(h.x + i*7 + 1, h.y + h.ht);
+      ctx.lineTo(h.x + i*7 + 3.5, h.y + 1);
+      ctx.lineTo(h.x + i*7 + 6, h.y + h.ht);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawScreen(imgKey, fallback) {
+  const img = IMG[imgKey];
+  if (imgOk(img)) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  else fallback();
+}
+
+function drawIntroScreen() {
+  const keys = ['in1', 'in2', 'in3'];
+  drawScreen(keys[currentLevel - 1], () => {
+    drawBg();
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00e5ff'; ctx.textAlign = 'center';
+    ctx.font = `bold ${Math.min(44, canvas.width * .055)}px 'Courier New'`;
+    ctx.fillText(`FASE ${currentLevel}`, canvas.width / 2, canvas.height / 2);
+  });
+  // Progress bar
+  const prog = Math.min(introTimer / 160, 1);
+  ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(canvas.width/2 - 100, canvas.height - 38, 200, 10);
+  ctx.fillStyle = '#00e5ff';        ctx.fillRect(canvas.width/2 - 100, canvas.height - 38, 200 * prog, 10);
+}
+
+function drawGameOverScreen() {
+  const gos = ['go1', 'go2', 'go3'];
+  drawScreen(gos[Math.min(currentLevel - 1, 2)], () => {
+    drawBg();
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ff2222'; ctx.textAlign = 'center';
+    ctx.font = `bold ${Math.min(72, canvas.width * .09)}px 'Courier New'`;
+    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+  });
+}
+
+function drawWinScreen() {
+  drawScreen('win', () => {
+    drawBg();
+    ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffd700'; ctx.textAlign = 'center';
+    ctx.font = `bold ${Math.min(40, canvas.width * .05)}px 'Courier New'`;
+    ctx.fillText('PARABÉNS! MISSÃO CUMPRIDA!', canvas.width / 2, canvas.height * .45);
+  });
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  ctx.font = `bold ${Math.min(18, canvas.width * .022)}px 'Courier New'`;
+  ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 12;
+  ctx.fillText(`💎 BOY: ${boyScore}   |   GIRL: ${girlScore} 💎`, canvas.width / 2, canvas.height * .82);
+  ctx.shadowBlur = 0;
+}
+
+// ── Game flow ─────────────────────────────────────────────────────────
+function initLevel() {
+  levelData  = buildLevel(currentLevel);
+  const pRole = myRole === 'boy' ? 'girl' : 'boy';
+  const sp    = myRole === 'boy' ? levelData.spawnBoy : levelData.spawnGirl;
+  const pp    = myRole === 'boy' ? levelData.spawnGirl : levelData.spawnBoy;
+  myPlayer   = new Player(myRole,   sp.x, sp.y);
+  peerPlayer = new Player(pRole, pp.x, pp.y);
+}
+
+function startIntro() {
+  initLevel();
+  gameState  = S.INTRO;
+  introTimer = 0;
+  document.getElementById('hudLevel').textContent = '';
+  showCanvas(true);
+  showHUD(true);
+  showControls(false);
+  setActBtn(`▶ INICIAR FASE ${currentLevel}`, true);
+}
+
+function startPlaying() {
+  gameState = S.PLAYING;
+  document.getElementById('hudLevel').textContent = `FASE ${currentLevel}`;
+  setActBtn('', false);
+  showControls(true);
+}
+
+function doGameOver() {
+  gameState = S.GAMEOVER;
+  showControls(false);
+  setActBtn('↺ TENTAR NOVAMENTE', true);
+}
+
+function doWin() {
+  gameState = S.WIN;
+  showControls(false);
+  setActBtn('↺ JOGAR NOVAMENTE', true);
+}
+
+function handleAct() {
+  if (gameState === S.INTRO)    { startPlaying(); return; }
+  if (gameState === S.GAMEOVER) { send({ type: 'restart' }); return; }
+  if (gameState === S.WIN)      { send({ type: 'restart' }); return; }
+}
+
+// ── Diamond check (only my diamonds) ──────────────────────────────────
+let sentLevelComplete = false;
+function checkDiamonds() {
+  if (!myPlayer || !myPlayer.alive || !levelData) return;
+  const myType = myRole === 'boy' ? 'blue' : 'pink';
+  for (let i = 0; i < levelData.diamonds.length; i++) {
+    const d = levelData.diamonds[i];
+    if (d.collected || d.t !== myType) continue;
+    const p = myPlayer;
+    if (p.x + p.W > d.x - 15 && p.x < d.x + 15 &&
+        p.y + p.H > d.y - 15 && p.y < d.y + 15) {
+      d.collected = true;
+      const score = myRole === 'boy' ? ++boyScore : ++girlScore;
+      updateHUD();
+      spawnFx(d.x, d.y, myRole === 'boy' ? '#00e5ff' : '#ff4dd2');
+      send({ type: 'collect', idx: i, score });
+    }
+  }
+
+  // Check level complete
+  if (!sentLevelComplete && levelData.diamonds.every(d => d.collected)) {
+    sentLevelComplete = true;
+    if (currentLevel < 3) {
+      send({ type: 'level_complete', next: currentLevel + 1, scores: { boy: boyScore, girl: girlScore } });
+    } else {
+      send({ type: 'win', scores: { boy: boyScore, girl: girlScore } });
+    }
+  }
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────
+function hideLobby()          { document.getElementById('lobby').style.display = 'none'; }
+function showWaiting(v)       { document.getElementById('waiting').style.display = v ? 'flex' : 'none'; }
+function showCanvas(v)        { canvas.style.display = v ? 'block' : 'none'; }
+function showHUD(v)           { document.getElementById('hud').style.display = v ? 'flex' : 'none'; }
+function showControls(v) {
+  document.getElementById('controls').style.display = v ? 'flex' : 'none';
+  if (v && myRole) {
+    document.getElementById('ctrlBoy').style.display  = myRole === 'boy'  ? 'block' : 'none';
+    document.getElementById('ctrlGirl').style.display = myRole === 'girl' ? 'block' : 'none';
+  }
+}
+function setActBtn(label, show) {
+  const b = document.getElementById('actBtn');
+  b.textContent    = label;
+  b.style.display  = show ? 'block' : 'none';
+}
+function updateHUD() {
+  document.getElementById('hudBoy').textContent  = `💎 BOY: ${boyScore}`;
+  document.getElementById('hudGirl').textContent = `💎 GIRL: ${girlScore}`;
+}
+function setStatus(t) { document.getElementById('lobbyStatus').textContent = t; }
+
+let msgTimer = null;
+function showMsg(text, ms) {
+  document.getElementById('msgText').textContent = text;
+  document.getElementById('msgOverlay').style.display = 'flex';
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => document.getElementById('msgOverlay').style.display = 'none', ms || 2500);
+}
+
+// ── Lobby helpers ─────────────────────────────────────────────────────
+function genCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let r = '';
+  for (let i = 0; i < 5; i++) r += c[Math.floor(Math.random() * c.length)];
+  document.getElementById('roomInput').value = r;
+}
+
+function join(role) {
+  const roomId = (document.getElementById('roomInput').value || 'ECO01').toUpperCase().trim();
+  if (!roomId) { setStatus('Digite o código da sala!'); return; }
+  setStatus('Conectando...');
+  connect(roomId, role);
+}
+
+// Keyboard shortcuts for screens
+window.addEventListener('keydown', e => {
+  if (e.code === 'Enter' || e.code === 'Space') {
+    if (gameState !== S.PLAYING && gameState !== S.LOBBY && gameState !== S.WAITING)
+      handleAct();
+  }
+});
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────────
+function loop() {
+  const cw = canvas.width, ch = canvas.height;
+  ctx.clearRect(0, 0, cw, ch);
+  pulse++;
+
+  if (gameState === S.INTRO) {
+    drawIntroScreen();
+    introTimer++;
+  }
+  else if (gameState === S.PLAYING) {
+    drawBg();
+    for (const p of levelData.platforms) drawPlatform(p);
+    for (const h of levelData.hazards)   drawHazard(h);
+    for (const d of levelData.diamonds)  if (!d.collected) drawDiamond(d.x, d.y, d.t);
+
+    myPlayer.tick(levelData.platforms, levelData.hazards);
+
+    peerPlayer.draw(true);
+    myPlayer.draw(false);
+
+    tickFx(); drawFx();
+    checkDiamonds();
+
+    // Sync my state every 2 frames
+    if (++syncTimer % 2 === 0) send({ type: 'state', data: myPlayer.getState() });
+
+    if (!myPlayer.alive) { send({ type: 'gameover' }); doGameOver(); }
+  }
+  else if (gameState === S.GAMEOVER) drawGameOverScreen();
+  else if (gameState === S.WIN)      drawWinScreen();
+
+  requestAnimationFrame(loop);
+}
+
+// Start when intro starts
+function onStateChange(s) {
+  if (s === S.INTRO || s === S.PLAYING || s === S.GAMEOVER || s === S.WIN) {
+    showCanvas(true);
+  }
+}
+
+// Reset sentLevelComplete on new level
+const _startIntro = startIntro;
+function startIntro() {
+  sentLevelComplete = false;
+  _startIntro();
+}
+
+loop();
+</script>
+</body>
+</html>
