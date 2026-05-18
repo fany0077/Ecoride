@@ -246,8 +246,9 @@ const ctx    = canvas.getContext('2d');
 function resizeCanvas() {
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
-  if (levelData) levelData = buildLevel(currentLevel); // rebuild on resize
+  if (typeof levelData !== 'undefined' && levelData) levelData = buildLevel(currentLevel);
 }
+
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
