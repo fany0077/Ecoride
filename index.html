@@ -321,6 +321,7 @@ class Player {
     this.role=role;this.x=x;this.y=y;this.vx=0;this.vy=0;
     this.W=30;this.H=46;this.onGround=false;this.facingRight=role==='boy';
     this.frame=0;this.ft=0;this.isMoving=false;this.alive=true;
+    this.hasData=false; // só desenha depois de receber dados do servidor
   }
   tick(platforms,hazards){
     if(!this.alive)return;
@@ -351,7 +352,7 @@ class Player {
     else this.frame=0;
   }
   getState(){return{x:this.x,y:this.y,vx:this.vx,vy:this.vy,onGround:this.onGround,facingRight:this.facingRight,frame:this.frame,isMoving:this.isMoving,alive:this.alive};}
-  applyRemote(s){this.x=s.x;this.y=s.y;this.vx=s.vx;this.vy=s.vy;this.onGround=s.onGround;this.facingRight=s.facingRight;this.frame=s.frame;this.isMoving=s.isMoving;this.alive=s.alive;}
+  applyRemote(s){this.x=s.x;this.y=s.y;this.vx=s.vx;this.vy=s.vy;this.onGround=s.onGround;this.facingRight=s.facingRight;this.frame=s.frame;this.isMoving=s.isMoving;this.alive=s.alive;this.hasData=true;}
   reset(x,y){this.x=x;this.y=y;this.vx=0;this.vy=0;this.alive=true;this.frame=0;this.ft=0;this.onGround=false;}
   draw(isPeer){
     if(!this.alive)return;
@@ -574,7 +575,8 @@ function loop(){
     for(const h of levelData.hazards)drawHazard(h);
     for(const d of levelData.diamonds)if(!d.collected)drawDiamond(d.x,d.y,d.t);
     myPlayer.tick(levelData.platforms,levelData.hazards);
-    peerPlayer.draw(true); myPlayer.draw(false);
+    if(peerPlayer && peerPlayer.hasData) peerPlayer.draw(true);
+    myPlayer.draw(false);
     tickFx(); drawFx(); checkDiamonds();
     if(++syncTimer%2===0)send({type:'state',data:myPlayer.getState()});
     if(!myPlayer.alive){send({type:'gameover'});doGameOver();}
