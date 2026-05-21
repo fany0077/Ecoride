@@ -351,8 +351,8 @@ class Player {
     if(mv||!this.onGround){if(++this.ft>8){this.frame=(this.frame+1)%4;this.ft=0;}}
     else this.frame=0;
   }
-  getState(){return{x:this.x,y:this.y,vx:this.vx,vy:this.vy,onGround:this.onGround,facingRight:this.facingRight,frame:this.frame,isMoving:this.isMoving,alive:this.alive};}
-  applyRemote(s){this.x=s.x;this.y=s.y;this.vx=s.vx;this.vy=s.vy;this.onGround=s.onGround;this.facingRight=s.facingRight;this.frame=s.frame;this.isMoving=s.isMoving;this.alive=s.alive;this.hasData=true;}
+  getState(){const cw=canvas.width,ch=canvas.height;return{x:this.x/cw,y:this.y/ch,vx:this.vx/cw,vy:this.vy/ch,onGround:this.onGround,facingRight:this.facingRight,frame:this.frame,isMoving:this.isMoving,alive:this.alive};}
+  applyRemote(s){const cw=canvas.width,ch=canvas.height;this.x=s.x*cw;this.y=s.y*ch;this.vx=s.vx*cw;this.vy=s.vy*ch;this.onGround=s.onGround;this.facingRight=s.facingRight;this.frame=s.frame;this.isMoving=s.isMoving;this.alive=s.alive;this.hasData=true;}
   reset(x,y){this.x=x;this.y=y;this.vx=0;this.vy=0;this.alive=true;this.frame=0;this.ft=0;this.onGround=false;}
   draw(isPeer){
     if(!this.alive)return;
