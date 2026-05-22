@@ -338,7 +338,9 @@ class Player {
     this.vy+=GRAVITY;this.x+=this.vx;this.y+=this.vy;
     this.onGround=false;
     for(const p of platforms){
-      if(this.x+this.W>p.x&&this.x<p.x+p.w&&this.y+this.H>p.y&&this.y+this.H<p.y+p.ht+20&&this.vy>=0){
+      const prevBottom=(this.y+this.H)-this.vy;
+      const currBottom=this.y+this.H;
+      if(this.x+this.W>p.x&&this.x<p.x+p.w&&prevBottom<=p.y&&currBottom>=p.y&&this.vy>=0){
         this.y=p.y-this.H;this.vy=0;this.onGround=true;
       }
     }
