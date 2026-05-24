@@ -87,6 +87,29 @@ html,body{width:100%;height:100%;overflow:hidden;background:#001020;font-family:
 /* ── MSG OVERLAY ────────────────────────────────────────────────── */
 #msgOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:55;pointer-events:none}
 #msgOverlay span{color:#fff;font-size:clamp(18px,5vw,28px);letter-spacing:3px;text-align:center;background:rgba(0,10,25,.75);padding:12px 24px;border-radius:10px;border:1px solid rgba(255,255,255,.2)}
+
+/* FORÇA VISUAL HORIZONTAL EM CELULAR */
+@media screen and (orientation: portrait) and (max-width: 900px) {
+
+  html, body {
+    width: 100vh;
+    height: 100vw;
+    overflow: hidden;
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    transform: rotate(90deg);
+    transform-origin: center center;
+  }
+
+  #gameCanvas {
+    width: 100vh !important;
+    height: 100vw !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -98,7 +121,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#001020;font-family:
     <h1>ECO RIDER</h1>
     <span>RIO EM PERIGO</span>
   </div>
-  <button id="startBtn" onclick="showLobby()">▶ INICIAR</button>
+  <button id="startBtn" onclick="forceLandscape(); showLobby()">▶ INICIAR</button>
 </div>
 
 <!-- ── LOBBY ──────────────────────────────────────────────────────── -->
@@ -177,6 +200,19 @@ function resizeCanvas() {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+
+// FORÇAR HORIZONTAL NO CELULAR
+async function forceLandscape() {
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock("landscape");
+    }
+  } catch(e) {
+    console.log("Landscape lock não suportado");
+  }
+}
+
+window.addEventListener("load", forceLandscape);
 
 // ── IMAGENS ──────────────────────────────────────────────────────
 const IMG = {
